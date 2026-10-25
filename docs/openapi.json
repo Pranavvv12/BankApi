@@ -1,0 +1,450 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bank API",
+    "version": "1.0.0",
+    "description": "REST API for bank backoffice operations"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    },
+    {
+      "url": "http://localhost:3001",
+      "description": "Docker container"
+    }
+  ],
+  "paths": {
+    "/accounts": {
+      "post": {
+        "summary": "Create a new bank account",
+        "description": "Creates a new bank account for a customer with optional initial deposit",
+        "tags": [
+          "Accounts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "customerId"
+                ],
+                "properties": {
+                  "customerId": {
+                    "type": "integer",
+                    "description": "ID of the customer",
+                    "example": 1
+                  },
+                  "initialDeposit": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Initial deposit amount",
+                    "example": 1000.5,
+                    "default": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "customerId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "balance": {
+                      "type": "string",
+                      "example": "1000.50"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Customer not found"
+          }
+        }
+      }
+    },
+    "/accounts/{id}/balance": {
+      "get": {
+        "summary": "Get account balance",
+        "description": "Retrieves the current balance of a specific account",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Account ID",
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account balance retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accountId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "balance": {
+                      "type": "string",
+                      "example": "1000.50"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found"
+          }
+        }
+      }
+    },
+    "/accounts/{id}/transactions": {
+      "get": {
+        "summary": "Get account transfer history",
+        "description": "Retrieves paginated transfer history for a specific account",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Account ID",
+            "example": 1
+          },
+          {
+            "in": "query",
+            "name": "take",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "description": "Number of records to retrieve"
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "description": "Number of records to skip"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transfer history retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accountId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "fromAccount": {
+                            "type": "integer"
+                          },
+                          "toAccount": {
+                            "type": "integer"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found"
+          }
+        }
+      }
+    },
+    "/customers": {
+      "post": {
+        "summary": "Create a new customer",
+        "description": "Creates a new customer with name and email",
+        "tags": [
+          "Customers"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "email"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Customer's full name",
+                    "example": "John Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Customer's email address",
+                    "example": "john.doe@example.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Customer created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "John Doe"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "john.doe@example.com"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the health status of the API",
+        "tags": [
+          "Health"
+        ],
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transfers": {
+      "post": {
+        "summary": "Transfer money between accounts",
+        "description": "Transfers a specified amount from one account to another. Supports idempotency to prevent duplicate transfers.",
+        "tags": [
+          "Transfers"
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional idempotency key to prevent duplicate transfers (valid for 24h)",
+            "example": "transfer-123e4567-e89b-12d3-a456-426614174000"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fromAccountId",
+                  "toAccountId",
+                  "amount"
+                ],
+                "properties": {
+                  "fromAccountId": {
+                    "type": "integer",
+                    "description": "Source account ID",
+                    "example": 1
+                  },
+                  "toAccountId": {
+                    "type": "integer",
+                    "description": "Destination account ID (must be different from source)",
+                    "example": 2
+                  },
+                  "amount": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "description": "Amount to transfer",
+                    "example": 250.75
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transfer completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "fromAccount": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "toAccount": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "amount": {
+                      "type": "string",
+                      "example": "250.75"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (insufficient funds, validation error, same account transfer)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Insufficient funds"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "message": {
+                          "type": "string",
+                          "example": "Account not found"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {},
+  "tags": []
+}
