@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  verify:
+    name: Build, lint, test and documentation check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The TypeScript build type-checks imports from @prisma/client, so the
+      # client must be generated before compiling. No database is required.
+      - name: Generate the Prisma client
+        run: npx prisma generate
+
+      - name: Compile
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      # Fails when a route has no @openapi annotation, or when the committed
+      # documentation no longer matches the source.
+      - name: Verify API documentation is in sync
+        run: npm run docs:check
