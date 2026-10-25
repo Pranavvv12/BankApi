@@ -9,6 +9,11 @@
     "start": "node dist/server.js",
     "lint": "eslint .",
     "format": "prettier -w .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "docs:sync": "tsx src/scripts/docs.ts",
+    "docs:check": "tsx src/scripts/docs.ts --check",
+    "verify": "npm run build && npm run lint && npm run test && npm run docs:check",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -35,7 +40,8 @@
     "prettier": "^3.3.2",
     "prisma": "^5.17.0",
     "tsx": "^4.20.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^2.1.9"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

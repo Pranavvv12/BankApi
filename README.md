@@ -157,21 +157,64 @@ The API includes comprehensive Swagger/OpenAPI 3.0 documentation accessible at:
 
 ### API Endpoints
 
-#### Customers
-- `POST /customers` - Create a new customer
-- `GET /customers` - Retrieve all customers
-- `GET /customers/{id}` - Get customer by ID
+The endpoint list below is **generated** from the `@openapi` annotations in the
+source — see [`docs/api-reference.md`](./docs/api-reference.md) for the full
+reference with parameters, request bodies, responses and examples, and
+[`docs/openapi.json`](./docs/openapi.json) for the machine readable spec.
 
-#### Accounts
-- `POST /accounts` - Create a new account
-- `GET /accounts` - List all accounts
-- `GET /accounts/{id}` - Get account details
-- `GET /accounts/{id}/balance` - Get account balance
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/healthz` | Health check |
+| `POST` | `/customers` | Create a new customer |
+| `POST` | `/accounts` | Create a new bank account |
+| `GET` | `/accounts/{id}/balance` | Get account balance |
+| `GET` | `/accounts/{id}/transactions` | Get paginated transfer history |
+| `POST` | `/transfers` | Transfer money between accounts |
 
-#### Transfers
-- `POST /transfers` - Create a money transfer
-- `GET /transfers` - List all transfers
-- `GET /transfers/{id}` - Get transfer details
+## 🔄 Automated Documentation Sync
+
+The committed API documentation is generated from the source and verified in
+CI, so it cannot silently drift away from the code.
+
+```bash
+# Regenerate docs/openapi.json and docs/api-reference.md
+npm run docs:sync
+
+# Verify without writing; exits non-zero when the docs are wrong
+npm run docs:check
+
+# The full CI gate: build + lint + test + docs:check
+npm run verify
+```
+
+Never edit the files under `docs/` by hand — they are overwritten on the next
+sync.
+
+### What the check enforces
+
+| Failure | Meaning | How to fix |
+| --- | --- | --- |
+| `DOCUMENTATION_DRIFT` | A route is registered with no `@openapi` annotation. | Add the annotation. Regenerating will not help. |
+| `DOCUMENTATION_STALE` | Annotations changed but the artefacts were not regenerated. | Run `npm run docs:sync` and commit `docs/`. |
+| `SOURCE_NOT_FOUND` | The routes directory could not be read. | Restore the path. |
+
+It also reports *orphaned* operations — documentation left behind after a route
+was deleted.
+
+### Adding an endpoint
+
+1. Register the route with an `@openapi` block above it, using the full path as
+   the client sees it (`/accounts/{id}/balance`, not `/:id/balance`).
+2. Run `npm run docs:sync`.
+3. Commit the source change together with the regenerated `docs/` files.
+
+### Optional pre-commit hook
+
+Catch drift before it reaches CI:
+
+```bash
+git config core.hooksPath .githooks
+```
 
 ## 🗄️ Prisma Database Management
 
@@ -310,8 +353,10 @@ Pino provides structured JSON logging:
 2. **Hot Reload:** `tsx watch` automatically restarts server
 3. **Database Changes:** Update `prisma/schema.prisma` and run migrations
 4. **API Testing:** Use Swagger UI or tools like Postman
-5. **Error Checking:** Monitor logs for proper error handling
-6. **Docker Testing:** Test in containerized environment before deployment
+5. **Documentation:** Run `npm run docs:sync` after changing any route, and commit the regenerated `docs/` files
+6. **Error Checking:** Monitor logs for proper error handling
+7. **Verification:** Run `npm run verify` before pushing — this is the same gate CI runs
+8. **Docker Testing:** Test in containerized environment before deployment
 
 ## 📁 Project Structure
 
@@ -325,11 +370,17 @@ bank-api/
 │   ├── schemas/         # Zod validation schemas
 │   ├── config/          # Environment and logging config
 │   ├── libs/            # Utility functions
-│   └── swagger/         # API documentation
+│   ├── docs/            # Documentation sync pipeline
+│   ├── scripts/         # docs:sync / docs:check CLI
+│   └── swagger/         # Runtime Swagger UI mount
+├── docs/                # GENERATED: openapi.json + api-reference.md
+├── tests/               # Vitest unit and integration tests
 ├── prisma/
 │   ├── schema.prisma    # Database schema
 │   ├── seed.ts          # Sample data script
 │   └── migrations/      # Database migration files
+├── .github/             # CI workflow and Copilot customisations
+├── .githooks/           # Optional pre-commit documentation check
 ├── scripts/             # Docker and deployment scripts
 ├── docker-compose.yml   # Multi-service container config
 ├── Dockerfile           # Application container definition

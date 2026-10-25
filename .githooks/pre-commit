@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Pre-commit hook: block a commit that would leave the API documentation out of
+# sync with the Express routes.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+#
+# Bypass in an emergency with `git commit --no-verify`.
+
+set -e
+
+if [ ! -d node_modules ]; then
+  echo "pre-commit: node_modules is missing; skipping the documentation check."
+  exit 0
+fi
+
+echo "pre-commit: verifying API documentation is in sync..."
+
+if npm run --silent docs:check; then
+  exit 0
+fi
+
+cat <<'MESSAGE'
+
+pre-commit: the API documentation check failed.
+
+  DOCUMENTATION_DRIFT   a route has no @openapi annotation.
+                        Add the annotation; regenerating will not help.
+
+  DOCUMENTATION_STALE   the committed documentation is out of date.
+                        Run `npm run docs:sync` and stage the docs/ changes.
+
+MESSAGE
+
+exit 1
