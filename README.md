@@ -9,7 +9,7 @@ A RESTful API for banking operations built with Node.js, TypeScript, Express.js,
 
 ```bash
 # Clone the repository
-git clone https://github.com/AvinoamSebbah/BankApi.git
+git clone https://github.com/Pranavvv12/BankApi.git
 cd BankApi
 
 # Start with Docker (Recommended)
@@ -53,7 +53,7 @@ docker-compose up --build
 
 ```bash
 # Clone the project
-git clone https://github.com/AvinoamSebbah/BankApi.git
+git clone https://github.com/Pranavvv12/BankApi.git
 cd BankApi
 
 # Install dependencies
@@ -173,12 +173,39 @@ reference with parameters, request bodies, responses and examples, and
 
 ## 🔄 Automated Documentation Sync
 
-The committed API documentation is generated from the source and verified in
-CI, so it cannot silently drift away from the code.
+The local Copilot updater inspects code changes and authors affected OpenAPI
+annotations. The generator renders those annotations into committed files.
+CI verifies route coverage and generated freshness; it does not independently
+understand business logic.
+
+### Code-aware update with Copilot
+
+1. Open **BankApi itself as the VS Code workspace** so its `.github` agents
+   and prompt files are discovered. Sign in to GitHub Copilot with agent access.
+2. Change and save application code (routes, validators, controllers or services).
+3. In **Copilot Chat**, run `/sync-api-documentation`. If the prompt is not
+   listed, select the `documentation-updater` agent and ask it to update
+   documentation from your working-tree changes. Reload VS Code if needed.
+4. The agent inspects the diff and related implementation, edits the affected
+   annotations, regenerates the reference, and runs verification. Review its
+   diff before committing.
+
+For committed changes, supply an explicit comparison, for example:
+`/sync-api-documentation compare against main`. On main after a commit, supply
+the previous commit instead. The default comparison is HEAD to the current
+working tree, not the entire history.
+
+This is an **explicit local Copilot action**. Saving code or running
+`npm run verify` does not invoke AI. No extra AI key or remote source upload
+script is added. Ambiguous code is reported for clarification rather than
+documented with invented behaviour.
 
 ```bash
 # Regenerate docs/openapi.json and docs/api-reference.md
 npm run docs:sync
+
+# Discover changed files for the local agent (does not invoke AI)
+npm run docs:changes
 
 # Verify without writing; exits non-zero when the docs are wrong
 npm run docs:check
@@ -189,6 +216,20 @@ npm run verify
 
 Never edit the files under `docs/` by hand — they are overwritten on the next
 sync.
+
+### Interview demo: behaviour changes without a new route
+
+In `src/schemas/customers.schema.ts`, temporarily change the name validator
+from `z.string().min(1)` to `z.string().min(3)`, then save it. Run
+`/sync-api-documentation` in Copilot Chat. The updater should follow the schema
+to `POST /customers`, document the three-character minimum in its annotation,
+and regenerate the request-body documentation.
+
+Inspect the annotation, `docs/openapi.json`, and `docs/api-reference.md` diffs
+and the verification results. Restore the validator to `.min(1)` and invoke
+the action again to bring documentation back in sync. Do not use
+`GET /:id/profile` wired to `createCustomer` as a positive demo: that code is
+ambiguous and should cause a clarification, not fabricated profile docs.
 
 ### What the check enforces
 

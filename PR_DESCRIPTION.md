@@ -1,121 +1,124 @@
-# Automated Documentation Sync
+# Code-aware documentation updates
 
 ## Summary
 
-The Bank API documents itself with `@openapi` JSDoc annotations that
-`swagger-jsdoc` turns into an OpenAPI document **at runtime only**. Nothing was
-committed, which meant an API change was invisible in a pull request diff, a
-route could be added without an annotation and silently vanish from `/docs`
-forever, and consumers had no machine readable artefact to generate clients
-from without booting the service against a live database.
+This change adds a locally invoked Copilot agent that inspects code changes,
+traces their effects to API endpoints, and updates OpenAPI annotations before
+regenerating the JSON and Markdown documentation. It closes the gap in the
+original annotation-based generator, which could pass verification even when
+business logic changed without a corresponding annotation update. The included
+customer-name validation change demonstrates the workflow end to end.
 
-This pull request generates the documentation from the source, commits it, and
-verifies it in CI — so it cannot drift away from the code unnoticed.
+## Changes Made
 
-The problem is not hypothetical. While building this, the new coverage checker
-immediately found that **`/healthz` had never appeared in `/docs`**, and the
-README was advertising **six endpoints that do not exist**.
+Files added:
 
-## Changes made
+- `.github/agents/documentation-updater.agent.md` - implements the local
+  authoring workflow, implementation tracing, ambiguity handling and validation.
+- `src/docs/changeContext.ts` - discovers staged, unstaged, deleted, renamed
+  and untracked files relative to HEAD or an explicit comparison commit.
+- `src/scripts/docsChanges.ts` - exposes change discovery as a CLI with explicit
+  failures and usage guidance; does not invoke AI itself.
+- `tests/changeContext.test.ts` - adds six Git-backed tests, including a
+  semantic-change scenario that the old documentation check cannot detect.
 
-### The documentation pipeline (`src/docs/`)
+Files modified:
 
-| Module | Role |
-| --- | --- |
-| `specOptions.ts` | Single shared OpenAPI definition, used by the generator **and** the runtime Swagger UI so the two cannot diverge. |
-| `routeScanner.ts` | Statically discovers every registered route, resolving mount prefixes from `src/routes/index.ts` and converting `:id` to `{id}`. Does not boot Express. |
-| `buildSpec.ts` | Runs `swagger-jsdoc` over the TypeScript sources and sorts the paths for determinism. |
-| `coverage.ts` | The drift detector — compares registered routes against documented operations. |
-| `markdown.ts` | Pure renderer for the human readable reference. |
-| `documentationSync.ts` | Orchestrates generation, comparison and writing; the only module that touches the filesystem. |
-| `errors.ts`, `types.ts` | Typed error codes and shared structural types. |
+- `.github/prompts/sync-api-documentation.prompt.md` - invokes the updater
+  rather than stopping when the annotation freshness check passes.
+- `.github/copilot-instructions.md` - directs code-aware updates to the new
+  agent and explains the limits of the generator.
+- `.github/skills/documentation-sync/SKILL.md` - includes business-logic and
+  validator changes in the workflow and documents the authoring step.
+- `package.json` - adds `npm run docs:changes`.
+- `src/schemas/customers.schema.ts` - retains the developer's change requiring
+  customer names to contain at least three characters.
+- `src/routes/customers.routes.ts` - documents `minLength: 3` and its meaning;
+  preserves the developer's commented profile-route demo.
+- `docs/openapi.json` - regenerated with the exact `minLength: 3` constraint.
+- `docs/api-reference.md` - regenerated with the readable three-character limit.
+- `README.md` - documents the explicit Copilot trigger, comparison scope,
+  setup, interview demo and limitations.
+- `requirements.md` - records acceptance criteria for code-aware authoring and
+  distinguishes it from deterministic CI checks.
+- `architecture.md` - describes the local authoring stage and its boundaries.
+- `CODE_REVIEW.md` - records review of this extension and its remaining risks.
+- `VERIFICATION.md` - records the current 41-test gate and live update evidence,
+  distinguishing model authoring from deterministic tests.
+- `CHANGELOG.md` - records the local agent, change-discovery command and the
+  customer-name validation behaviour change.
+- `PR_DESCRIPTION.md` - supplies this submission summary, complete file
+  inventory, test evidence, limitations and reviewer checklist.
 
-### Generated artefacts
+## Test Evidence
 
-- `docs/openapi.json` — OpenAPI 3.0, 6 paths.
-- `docs/api-reference.md` — ~280 lines covering metadata, servers, a coverage
-  summary, an endpoint index, and per-endpoint parameters, request bodies,
-  response codes and example payloads.
+Local `npm run verify` result:
 
-### Tooling
+```text
+> tsc -p tsconfig.json
+Pass
 
-- `npm run docs:sync` — regenerate. `npm run docs:check` — verify, non-zero on
-  failure. `npm run verify` — build + lint + test + documentation check.
-- GitHub Actions workflow running the full gate on every push and pull request.
-- Optional `.githooks/pre-commit` that blocks a commit leaving docs out of sync.
-- Vitest plus a 35-test suite.
+> eslint .
+0 errors, 7 pre-existing warnings
 
-### Copilot customisations
+Test Files  6 passed (6)
+     Tests  41 passed (41)
 
-Repository instructions, a `sync-api-documentation` prompt, an
-`api-documentation-reviewer` agent, and a `documentation-sync` skill.
-
-### Fixes discovered along the way
-
-| Fix | Detail |
-| --- | --- |
-| `/healthz` missing from `/docs` | It is annotated in `src/app.ts`, which the original globs did not cover. |
-| `npm run lint` broken for everyone | The config was committed as `eslintrc.cjs`, not `.eslintrc.cjs`; ESLint exited with code 2. The `verify` gate depends on lint, so this had to be fixed. |
-| README documented non-existent endpoints | `GET /customers`, `GET /customers/{id}`, `GET /accounts`, `GET /accounts/{id}`, `GET /transfers`, `GET /transfers/{id}` were all listed but never implemented. |
-
-## Test evidence
-
-```
-npm run verify
-
-build   tsc -p tsconfig.json           pass
-lint    eslint .                       pass (0 errors, 7 pre-existing warnings)
-test    vitest run                     5 files, 35 tests, all passing
-docs    tsx src/scripts/docs.ts --check  Routes: 6 | documented: 6 | undocumented: 0 | orphaned: 0
-
-exit code 0
+> tsx src/scripts/docs.ts --check
+Routes: 6 | documented operations: 6 | undocumented: 0 | orphaned: 0
+Documentation is up to date.
 ```
 
-**The gate was proven to fail, not just to pass.** Appending an unannotated
-route produced:
+Live demonstration:
 
-```
-DOCUMENTATION_DRIFT: Routes are registered without an @openapi annotation.
-  - GET /customers/{id}/profile (src/routes/customers.routes.ts)
-exit code 1
-```
+1. Changed `createCustomerSchema` from `.min(1)` to `.min(3)`.
+2. Confirmed the old `docs:check` still passed, demonstrating its semantic gap.
+3. Inspected the validator, route, controller and validation middleware.
+4. Updated the `POST /customers` annotation and ran `npm run docs:sync`.
+5. Verified `name.minLength === 3` in the generated OpenAPI request schema and
+   "at least 3 characters" in the generated Markdown.
+6. Ran the complete verification gate successfully.
 
-Edge cases covered by tests: missing routes directory, hand-edited reference,
-deleted specification, undocumented route, newly annotated route, artefacts
-checked out with CRLF line endings, empty specification, annotations missing
-summary/tag/responses, paths appearing only inside comments, and repeated syncs
-being no-ops.
+The six new tests exercise Git change discovery and deterministic generation;
+they do not invoke an AI model or guarantee model-authored accuracy. See
+[`VERIFICATION.md`](./VERIFICATION.md) for evidence and the historical baseline.
+GitHub Actions runs the same gate when this branch is pushed.
 
-Full detail in [`VERIFICATION.md`](./VERIFICATION.md).
+## Known Limitations
 
-## Known limitations
+- **Explicit trigger:** run `/sync-api-documentation` in local Copilot Chat.
+  Saving code, `docs:sync`, `docs:changes`, and `verify` do not invoke AI.
+- **Copilot setup:** requires Copilot agent access and BankApi opened as the
+  workspace. This session exercised the authoring workflow; prompt discovery
+  in a separate VS Code Chat instance has not been independently verified.
+- **Human review:** CI verifies route coverage and generated freshness, not
+  semantic agreement with validators or business logic. The agent must flag
+  uncertain behaviour instead of inventing documentation.
+- **Comparison scope:** defaults to HEAD versus the working tree. Already
+  committed changes require an explicit comparison ref or endpoint scope.
+- **Static scanner:** computed/dynamic routes and alternative mounting
+  conventions are not supported. The exact route inventory test must be
+  deliberately updated when real endpoints are added or removed.
+- **Remaining `Not Found` entries:** the `skip` and `take` query parameter
+  examples for `GET /accounts/{id}/transactions` are unspecified. Their limits
+  and defaults are documented; no example values were invented.
+- **Out of scope:** hosted AI updates in CI, automatic commits, database/server
+  integration testing, and automatically deriving all schemas from Zod.
+- **Existing dependency findings:** the original baseline recorded 13 audit
+  findings; dependency remediation is outside this change, and no new audit
+  claim is made. Seven existing `no-explicit-any` warnings remain visible.
 
-1. **Route discovery is static.** A route registered dynamically — a computed
-   path or a loop — would not be found. Runtime introspection was rejected
-   because it would require a live database in CI. Mitigated by a test that
-   asserts the exact expected route list, so a missed route fails the build.
-2. **Mount prefixes rely on the existing convention** of
-   `import x from './x.routes.js'` plus `router.use('/x', x)`.
-3. **Request bodies are not cross-checked against the Zod schemas**, so an
-   annotation could in principle describe a field the validator rejects. The
-   reviewer agent is instructed to check this manually; automating it is a
-   follow-up.
-4. **CI detects drift but does not auto-commit a fix.** This is deliberate — it
-   avoids giving CI write access to protected branches and keeps the author
-   responsible for their documentation.
-5. **Pre-existing issues left alone:** 13 `npm audit` findings and 7
-   `no-explicit-any` warnings in untouched controller and service code. Both
-   are flagged in `CODE_REVIEW.md` §5 rather than fixed here.
+## Reviewer Checklist
 
-## Reviewer checklist
-
-- [ ] `requirements.md`, `architecture.md`, `design-review.md` and
-      `impl-plan.md` describe the feature that was actually built.
-- [ ] `docs/openapi.json` and `docs/api-reference.md` match the routes in
-      `src/routes/` and `src/app.ts`.
-- [ ] `npm run verify` passes locally.
-- [ ] CI is green.
-- [ ] The drift gate is understood: adding a route without an `@openapi` block
-      will now fail the build.
-- [ ] The ESLint rename and rule changes are acceptable.
-- [ ] The known limitations above are acceptable for merge.
+- [ ] Confirm the three-character customer-name rule is intentional.
+- [ ] Compare the validator with its annotation and both generated artefacts.
+- [ ] Run `/sync-api-documentation` in Copilot Chat and confirm the prompt or
+      `documentation-updater` agent is available in the BankApi workspace.
+- [ ] Confirm the action investigates semantic changes even if `docs:check`
+      initially passes, and reports contradictory code rather than inventing.
+- [ ] Review all listed added/modified files and preserve developer edits.
+- [ ] Run `npm run verify` and confirm all 41 tests pass.
+- [ ] Confirm the PR's GitHub Actions checks are green.
+- [ ] Accept the remaining `Not Found` entries and stated limitations.
+- [ ] Confirm no credentials, temporary demo edits or unexpected files are
+      included before approving.

@@ -8,15 +8,20 @@ description: Keep the Bank API's committed OpenAPI spec and Markdown reference i
 ## When to use this skill
 
 - A route is added, changed or removed in `src/routes/` or `src/app.ts`.
+- A validator, controller, service or middleware changes public API behaviour,
+  even when the registered routes are unchanged.
 - CI fails with `DOCUMENTATION_DRIFT`, `DOCUMENTATION_STALE` or
   `SOURCE_NOT_FOUND`.
 - Someone asks whether the API documentation is current.
 
 ## Mental model
 
-The committed documentation is **derived**, never authored:
+The local Copilot updater **authors annotations from implementation evidence**;
+the generator then derives the committed artefacts from those annotations:
 
 ```
+code diff -> local documentation-updater agent -> updated @openapi annotations
+
 src/app.ts + src/routes/*.routes.ts   (the @openapi annotations)
             │
             ├── swagger-jsdoc ──────► docs/openapi.json
@@ -25,6 +30,10 @@ src/app.ts + src/routes/*.routes.ts   (the @openapi annotations)
 ```
 
 `docs:check` fails when the two sides disagree. It never rewrites anything.
+It does not compare business logic against annotations. Never use a passing
+check as a reason to skip inspection of code changes. Invoke
+`/sync-api-documentation` and follow
+`../../agents/documentation-updater.agent.md` for that authoring step.
 
 ## Diagnosing a failure
 

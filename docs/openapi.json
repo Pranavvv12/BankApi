@@ -238,7 +238,8 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "Customer's full name",
+                    "minLength": 3,
+                    "description": "Customer's full name (at least 3 characters)",
                     "example": "John Doe"
                   },
                   "email": {

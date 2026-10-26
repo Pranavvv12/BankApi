@@ -23,8 +23,9 @@ discovered by whoever is misled by it.
 ## 2. User story
 
 > As a backend engineer on the Bank API, I want the committed API documentation
-> to be regenerated from the source and verified automatically, so that a route
-> can never reach the default branch undocumented or described incorrectly.
+> to be updated from code changes through a local Copilot action and verified
+> automatically, so that API behaviour and its documentation can be reviewed
+> together. CI checks coverage and freshness; semantic accuracy requires review.
 
 ### Acceptance criteria
 
@@ -34,6 +35,11 @@ discovered by whoever is misled by it.
 3. Continuous integration runs that verification on every push and pull request.
 4. A route added without an `@openapi` annotation fails the build, and the
    failure names the method, the path and the file.
+5. Invoking `/sync-api-documentation` inspects code changes even when the
+   existing freshness check passes, follows implementation evidence to affected
+   endpoints, updates annotations, regenerates artefacts and runs verification.
+6. Ambiguous implementation is reported for clarification, not documented with
+   invented behaviour. Saving a file alone does not trigger AI.
 
 ## 3. Functional requirements
 
@@ -52,6 +58,9 @@ discovered by whoever is misled by it.
 | FR-11 | Publish a documentation coverage summary inside the generated reference. | Should |
 | FR-12 | Render an explicit `Not Found` marker wherever an annotation omits a field, rather than leaving a blank cell. | Should |
 | FR-13 | Serve the runtime Swagger UI from the same definition the generator uses, so the two cannot diverge. | Must |
+| FR-14 | Provide a local Copilot action to trace route, schema, controller, middleware and service changes to affected annotations and update them from implementation evidence. | Must |
+| FR-15 | Discover staged, unstaged and untracked changes, and accept an explicit comparison ref for committed changes; report Git errors instead of treating them as no changes. | Must |
+| FR-16 | Regenerate and verify after authoring, inspect the resulting documentation diff, and flag unresolved semantic questions for human review. | Must |
 
 ## 4. Non-functional requirements
 

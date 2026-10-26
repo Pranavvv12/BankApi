@@ -3,6 +3,33 @@
 **Stage 6 of the Agentic SDLC workflow.** Reviews the implementation against
 [`impl-plan.md`](./impl-plan.md) and [`architecture.md`](./architecture.md).
 
+## Local updater extension review
+
+Reviewed `changeContext.ts`, its CLI, six Git-backed tests, the local updater
+agent/prompt/instructions, and the customer-name annotation/generated diff.
+The helper uses argument-array Git invocation, resolves the base before diffing,
+preserves filename boundaries with NUL delimiters, propagates errors and covers
+both working-tree and explicit committed-change comparisons.
+
+The old prompt incorrectly stopped when `docs:check` passed even though
+validator behaviour could have changed. The updater now requires source
+inspection before concluding no change is needed. It preserves developer
+edits and requires evidence, clarification for ambiguous code, generation,
+verification and output-diff inspection.
+
+The current `.min(3)` validator change is intentional, changes public behaviour,
+and is reflected in the request annotation and both generated artefacts.
+Unlike the historical baseline assessment below, this extension is therefore
+not runtime-behaviour-neutral. The full gate passes with 41 tests.
+
+Remaining risks: model output requires review; the tests model annotation
+authoring rather than invoking AI; separate VS Code prompt discovery is not
+independently verified; CI does not prove semantic accuracy; two pagination
+example cells remain `Not Found`. Reviewer approval is still required and
+checklist boxes are intentionally unticked.
+
+The sections below retain the original merged implementation's review.
+
 ## 1. Scope reviewed
 
 | Area | Files |

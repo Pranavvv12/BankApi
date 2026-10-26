@@ -5,6 +5,28 @@
 
 ## 1. Overview
 
+### Local code-aware authoring stage
+
+`/sync-api-documentation` invokes the local `documentation-updater` Copilot
+agent. Before the deterministic pipeline below, it runs `docs:changes` to
+discover staged, unstaged and untracked files relative to HEAD (or an explicit
+base), inspects the diff and follows implementation dependencies to affected
+endpoints. It edits their `@openapi` annotations, regenerates the artefacts,
+inspects the output diff and runs verification. Ambiguous semantics require
+clarification; the agent does not invent responses or silently change code.
+
+`src/docs/changeContext.ts` invokes Git with argument arrays and resolves the
+comparison ref to a commit before diffing. NUL-separated filenames preserve
+spaces and rename/deletion evidence. Git errors propagate to the CLI as
+failures. This helper lists paths; it does not send source to an AI provider.
+
+The AI action requires a local Copilot session and an explicit invocation.
+Saving files and running CI do not start it. CI remains an offline,
+deterministic coverage/freshness gate, not a semantic verifier. Already
+committed changes require a supplied base or explicit endpoint scope.
+
+### Deterministic generation and verification
+
 The feature is a small pipeline that reads the Express sources, produces two
 committed artefacts, and compares them against what is already on disk. It is
 exposed through a CLI and enforced in CI.
