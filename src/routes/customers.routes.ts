@@ -25,7 +25,8 @@ const r = Router();
  *             properties:
  *               name:
  *                 type: string
- *                 description: Customer's full name
+ *                 minLength: 3
+ *                 description: Customer's full name (at least 3 characters)
  *                 example: "John Doe"
  *               email:
  *                 type: string
@@ -56,4 +57,5 @@ const r = Router();
  *         description: Validation error
  */
 r.post('/', validate(createCustomerSchema), createCustomer);
+// r.get('/:id/profile', createCustomer);
 export default r;

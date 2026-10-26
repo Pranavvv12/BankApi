@@ -159,7 +159,7 @@ Registered in: `src/routes/customers.routes.ts`
 | Field | Type | Required | Description | Example |
 | --- | --- | --- | --- | --- |
 | `email` | string (email) | Yes | Customer's email address | `john.doe@example.com` |
-| `name` | string | Yes | Customer's full name | `John Doe` |
+| `name` | string | Yes | Customer's full name (at least 3 characters) | `John Doe` |
 
 Example request:
 

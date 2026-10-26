@@ -1,10 +1,42 @@
 # Verification — Automated Documentation Sync
 
+## Local code-aware updater extension
+
+The following validation covers the local Copilot workflow added after the
+original 35-test baseline below:
+
+- Six new Git-backed tests cover clean trees, staged/unstaged/untracked files,
+  ignored secrets, deleted/renamed paths, explicit committed-change bases,
+  invalid bases, and source changes that still pass `docs:check`.
+- The integration test models the annotation-authoring step and verifies the
+  exact `minLength: 3` JSON field and readable Markdown constraint. It does
+  not invoke an AI model.
+- A live temporary change to `createCustomerSchema` from `.min(1)` to `.min(3)`
+  was discovered by `docs:changes` while the old `docs:check` still passed.
+  The implementation and validation middleware were inspected, the affected
+  `POST /customers` annotation updated, and both artefacts regenerated.
+  The generated JSON contained `minLength: 3`; the Markdown request table
+  contained "at least 3 characters". The full gate passed with 41 tests.
+- The temporary validator and annotation edits were then restored and the
+  artefacts regenerated. The developer's existing commented profile demo
+  route was preserved.
+- The developer subsequently applied `.min(3)` again and requested the sync
+  action. The annotation and both generated files were updated, the exact
+  JSON and Markdown changes inspected, and the full 41-test gate passed.
+  This final three-character rule is intentionally retained for submission.
+
+The updater is a checked-in local agent and prompt, not a background process.
+Its workflow was exercised in this assistant session; discovery and execution
+of the slash prompt in a separate VS Code Copilot Chat session still require
+opening BankApi as the workspace and invoking it. Model-authored semantic
+accuracy remains reviewable, not a guarantee provided by the deterministic
+CI check.
+
 **Stage 7 of the Agentic SDLC workflow.**
 
 Environment: Windows, Node v24.19.0, npm 11, TypeScript 5.4, vitest 2.1.9.
 
-## 1. Full gate
+## 1. Original merged baseline gate (35 tests)
 
 ```
 npm run verify
@@ -19,7 +51,7 @@ npm run verify
 
 Overall exit code: **0**.
 
-## 2. Test results
+## 2. Original baseline test results
 
 ```
  ✓ tests/coverage.test.ts              (4 tests)

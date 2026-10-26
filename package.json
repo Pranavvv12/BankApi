@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "docs:sync": "tsx src/scripts/docs.ts",
+    "docs:changes": "tsx src/scripts/docsChanges.ts",
     "docs:check": "tsx src/scripts/docs.ts --check",
     "verify": "npm run build && npm run lint && npm run test && npm run docs:check",
     "prisma:generate": "prisma generate",

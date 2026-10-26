@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Local code-aware Copilot `documentation-updater` agent, invoked with
+  `/sync-api-documentation`. It traces changed validators, handlers and services
+  to affected API annotations even when route-coverage checks pass, regenerates
+  the artefacts and verifies the result. It asks for clarification on ambiguous
+  behaviour instead of inventing documentation.
+- `npm run docs:changes` discovers staged, unstaged and untracked changes for
+  that action, with optional `-- --base <ref>` for committed changes.
+
 - **Automated documentation sync.** The OpenAPI specification and a Markdown API
   reference are now generated from the `@openapi` annotations and committed to
   `docs/`, so API changes are visible and reviewable in a pull request diff.
@@ -46,6 +54,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Customer names now require at least three characters. The `POST /customers`
+  annotation and generated JSON/Markdown reference reflect the validator.
 - The runtime Swagger UI and the documentation generator now share a single
   OpenAPI definition in `src/docs/specOptions.ts`, so `/docs` and the committed
   specification cannot diverge.

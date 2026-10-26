@@ -32,6 +32,13 @@ ESM** (`"type": "module"`).
 
 ## Documentation sync internals
 
+When asked to update documentation after code changes, follow
+`.github/agents/documentation-updater.agent.md`. Trace changed schemas,
+controllers, services and middleware to their affected routes even if
+`docs:check` passes. That check cannot detect semantic differences between
+implementation and annotations. Use `/sync-api-documentation` in Copilot Chat
+for the local authoring action; `docs:sync` alone only renders annotations.
+
 Source lives in `src/docs/`:
 
 | Module | Role |
@@ -57,6 +64,7 @@ Constraints to preserve when modifying this code:
 | Command | Purpose |
 | --- | --- |
 | `npm run docs:sync` | Regenerate the committed documentation. |
+| `npm run docs:changes` | List staged, unstaged and new files for the local updater; optional `-- --base <ref>`. |
 | `npm run docs:check` | Verify it without writing; non-zero on failure. |
 | `npm test` | Run the vitest suite. |
 | `npm run verify` | Build, lint, test and documentation check — the CI gate. |
